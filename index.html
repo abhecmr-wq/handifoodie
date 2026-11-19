@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#3f6b3a">
+<title>HandiFoodie · Catatan Order</title>
+<style>
+:root{--g:#3f6b3a;--gd:#2c4d29;--gl:#eaf2e6;--p:#f29aa6;--pl:#fde8ec;--bg:#fffaf7;--tx:#26331f;--mu:#6f7a69;--ln:#e6e2dc;--red:#c0392b;--amber:#b7791f}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0}
+body{font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--tx);font-size:16px;line-height:1.4;padding-bottom:84px}
+header{background:var(--g);color:#fff;padding:14px 16px;position:sticky;top:0;z-index:5;display:flex;align-items:center;gap:10px}
+header h1{font-size:18px;margin:0;flex:1;font-weight:800;letter-spacing:.2px}
+header small{display:block;font-weight:500;opacity:.85;font-size:12px}
+header button{background:rgba(255,255,255,.18);color:#fff;border:0;border-radius:10px;padding:8px 12px;font-size:14px;font-weight:700}
+#banner{background:#fff4d6;color:#6b4e00;padding:9px 16px;font-size:13px;border-bottom:1px solid #f0dfa8}
+main{max-width:640px;margin:0 auto;padding:14px}
+section{display:none}section.on{display:block}
+.card{background:#fff;border:1px solid var(--ln);border-radius:16px;padding:14px;margin-bottom:12px}
+h2{font-size:16px;margin:0 0 10px;color:var(--gd)}
+label{display:block;font-size:13px;font-weight:700;color:var(--mu);margin:10px 0 4px}
+input,select,textarea{width:100%;font:inherit;padding:11px 12px;border:1px solid var(--ln);border-radius:12px;background:#fff;color:var(--tx)}
+textarea{min-height:64px;resize:vertical}
+input:focus,select:focus,textarea:focus{outline:2px solid var(--p);border-color:var(--p)}
+.row{display:flex;gap:10px}.row>*{flex:1;min-width:0}
+.item{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px dashed var(--ln)}
+.item:last-child{border-bottom:0}
+.item .nm{flex:1;min-width:0;font-weight:700}
+.item .nm span{display:block;font-weight:500;color:var(--mu);font-size:13px}
+.qty{display:flex;align-items:center;gap:6px}
+.qty button{width:40px;height:40px;border-radius:12px;border:1px solid var(--ln);background:var(--gl);color:var(--gd);font-size:22px;font-weight:800;line-height:1}
+.qty b{min-width:26px;text-align:center;font-size:18px}
+.total{display:flex;justify-content:space-between;align-items:center;font-size:20px;font-weight:800;color:var(--gd);margin-top:12px;padding-top:12px;border-top:2px solid var(--gl)}
+.btn{display:block;width:100%;border:0;border-radius:14px;padding:14px;font:inherit;font-weight:800;background:var(--g);color:#fff;margin-top:12px}
+.btn:disabled{opacity:.55}
+.btn.ghost{background:var(--gl);color:var(--gd)}
+.btn.pink{background:var(--pl);color:#a23b52}
+.seg{display:flex;background:var(--gl);border-radius:12px;padding:4px;gap:4px}
+.seg button{flex:1;border:0;background:transparent;padding:9px 6px;border-radius:9px;font:inherit;font-size:14px;font-weight:700;color:var(--gd)}
+.seg button.on{background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.12)}
+.ord{border-left:6px solid var(--p)}
+.ord.lunas{border-left-color:var(--g)}
+.ord.selesai{opacity:.62}
+.ord .top{display:flex;justify-content:space-between;gap:8px;align-items:flex-start}
+.ord .who{font-weight:800;font-size:17px}
+.ord .meta{font-size:13px;color:var(--mu)}
+.ord ul{margin:8px 0;padding-left:18px}
+.ord .note{font-size:14px;background:var(--pl);border-radius:10px;padding:7px 10px;margin:6px 0}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.chip{border:1px solid var(--ln);background:#fff;border-radius:999px;padding:8px 12px;font:inherit;font-size:13px;font-weight:700;color:var(--tx);text-decoration:none}
+.chip.g{background:var(--g);border-color:var(--g);color:#fff}
+.chip.a{background:#fff4d6;border-color:#f0dfa8;color:var(--amber)}
+.chip.r{color:var(--red)}
+.stat{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.stat div{background:var(--gl);border-radius:14px;padding:12px}
+.stat div.pk{background:var(--pl)}
+.stat b{display:block;font-size:19px;color:var(--gd)}
+.stat span{font-size:12px;color:var(--mu);font-weight:700}
+table{width:100%;border-collapse:collapse;font-size:15px}
+td,th{padding:8px 4px;border-bottom:1px solid var(--ln);text-align:left}
+td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
+.empty{text-align:center;color:var(--mu);padding:26px 10px}
+nav{position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid var(--ln);display:flex;padding:6px 6px calc(6px + env(safe-area-inset-bottom));z-index:6}
+nav button{flex:1;border:0;background:transparent;padding:9px 2px;font:inherit;font-size:12px;font-weight:700;color:var(--mu);border-radius:12px}
+nav button i{display:block;font-style:normal;font-size:20px;line-height:1.2}
+nav button.on{color:var(--gd);background:var(--gl)}
+#toast{position:fixed;left:50%;bottom:96px;transform:translateX(-50%);background:#26331f;color:#fff;padding:10px 16px;border-radius:999px;font-size:14px;font-weight:600;opacity:0;pointer-events:none;transition:opacity .2s;z-index:9;max-width:90%;text-align:center}
+#toast.on{opacity:1}#toast.err{background:var(--red)}
+.hint{font-size:13px;color:var(--mu)}
+ol.steps{padding-left:20px;font-size:14px}ol.steps li{margin-bottom:6px}
+.mrow{display:flex;gap:8px;margin-bottom:8px}.mrow input:first-child{flex:2}.mrow input:nth-child(2){flex:1}.mrow button{border:0;background:var(--pl);color:#a23b52;border-radius:12px;width:44px;font-size:18px;font-weight:800}
+</style>
+</head>
+<body>
+<header>
+  <h1>HandiFoodie<small id="sub">Catatan Order</small></h1>
+  <button id="btnRefresh" type="button">↻ Muat ulang</button>
+</header>
+<div id="banner" hidden></div>
+<main>
+  <!-- ORDER BARU -->
+  <section id="v-baru" class="on">
+    <form id="fOrder" class="card" autocomplete="off">
+      <h2 id="formTitle">Order baru</h2>
+      <div class="row">
+        <div><label for="oNama">Nama pembeli</label><input id="oNama" required maxlength="60" placeholder="mis. Bu Rina"></div>
+        <div><label for="oWa">No. WhatsApp</label><input id="oWa" inputmode="tel" maxlength="20" placeholder="08…"></div>
+      </div>
+      <div class="row">
+        <div><label for="oTgl">Tanggal ambil / antar</label><input id="oTgl" type="date" required></div>
+        <div><label for="oBayar">Pembayaran</label><select id="oBayar"><option>Belum</option><option>Lunas</option></select></div>
+      </div>
+      <label>Pesanan</label>
+      <div id="items"></div>
+      <label for="oCat">Catatan</label>
+      <textarea id="oCat" maxlength="200" placeholder="mis. tanpa saus, antar jam 10"></textarea>
+      <div class="total"><span>Total</span><span id="oTotal">Rp0</span></div>
+      <button class="btn" id="btnSave" type="submit">Simpan order</button>
+      <button class="btn ghost" id="btnCancel" type="button" hidden>Batal ubah</button>
+    </form>
+  </section>
+
+  <!-- DAFTAR -->
+  <section id="v-daftar">
+    <div class="card">
+      <div class="seg" id="fStatus">
+        <button type="button" data-f="aktif" class="on">Aktif</button>
+        <button type="button" data-f="belum">Belum bayar</button>
+        <button type="button" data-f="semua">Semua</button>
+      </div>
+      <div class="row" style="margin-top:10px">
+        <input id="fCari" placeholder="Cari nama…">
+        <input id="fTgl" type="date" aria-label="Saring tanggal">
+      </div>
+    </div>
+    <div id="list"></div>
+  </section>
+
+  <!-- REKAP -->
+  <section id="v-rekap">
+    <div class="card">
+      <h2>Rekap penjualan</h2>
+      <div class="seg" id="rRange">
+        <button type="button" data-r="hari" class="on">Hari ini</button>
+        <button type="button" data-r="7">7 hari</button>
+        <button type="button" data-r="bulan">Bulan ini</button>
+        <button type="button" data-r="semua">Semua</button>
+      </div>
+      <div class="stat" id="rStat" style="margin-top:12px"></div>
+      <div id="rMenu" style="margin-top:12px"></div>
+    </div>
+    <div class="card">
+      <h2>Daftar produksi</h2>
+      <label for="pTgl">Untuk tanggal</label>
+      <input id="pTgl" type="date">
+      <div id="pList" style="margin-top:10px"></div>
+    </div>
+    <button class="btn ghost" id="btnCsv" type="button">Unduh semua order (CSV)</button>
+  </section>
+
+  <!-- PENGATURAN -->
+  <section id="v-atur">
+    <div class="card">
+      <h2>Daftar menu &amp; harga</h2>
+      <div id="menuEdit"></div>
+      <button class="btn ghost" id="btnAddMenu" type="button">+ Tambah menu</button>
+      <button class="btn" id="btnSaveMenu" type="button">Simpan menu</button>
+    </div>
+    <div class="card">
+      <h2>Sambungan Google Sheets</h2>
+      <p class="hint" id="connState"></p>
+      <label for="cApi">URL Web App (berakhiran /exec)</label>
+      <input id="cApi" placeholder="https://script.google.com/macros/s/…/exec" autocapitalize="off" autocorrect="off" spellcheck="false">
+      <label for="cPin">PIN (sama dengan PIN di Code.gs)</label>
+      <input id="cPin" type="password" autocomplete="off">
+      <button class="btn" id="btnConn" type="button">Simpan &amp; sambungkan</button>
+      <button class="btn ghost" id="btnShare" type="button">Salin link untuk perangkat kedua</button>
+      <button class="btn pink" id="btnDisc" type="button">Putuskan sambungan di perangkat ini</button>
+    </div>
+    <div class="card">
+      <h2>Cara menyambungkan (sekali saja)</h2>
+      <ol class="steps">
+        <li>Buat Google Sheets baru, lalu buka <b>Ekstensi → Apps Script</b>.</li>
+        <li>Hapus isi bawaan, tempel seluruh isi file <b>Code.gs</b>, dan ganti nilai <b>PIN</b> di baris paling atas.</li>
+        <li>Klik <b>Terapkan → Deployment baru → Aplikasi web</b>. Pilih "Jalankan sebagai: Saya" dan "Yang memiliki akses: Siapa saja", lalu izinkan aksesnya.</li>
+        <li>Salin URL yang berakhiran <b>/exec</b>, tempel di kolom di atas bersama PIN-nya, lalu tekan Simpan.</li>
+        <li>Tekan "Salin link untuk perangkat kedua" dan buka link itu di HP satunya.</li>
+      </ol>
+    </div>
+  </section>
+</main>
+
+<nav id="nav">
+  <button type="button" data-v="baru" class="on"><i>＋</i>Order baru</button>
+  <button type="button" data-v="daftar"><i>☰</i>Daftar</button>
+  <button type="button" data-v="rekap"><i>∑</i>Rekap</button>
+  <button type="button" data-v="atur"><i>⚙</i>Atur</button>
+</nav>
+<div id="toast" role="status"></div>
+
+<script>
+(function(){
+'use strict';
+var DEFAULT_MENU=[
+  {id:'m1',nama:'Wanpaku Sandwich (potong)',harga:15000},
+  {id:'m2',nama:'Wanpaku Sandwich (pasang)',harga:28000},
+  {id:'m3',nama:'Mango Sago (cup 400ml)',harga:15000},
+  {id:'m4',nama:'Buah Potong (cup)',harga:9000}
+];
+var $=function(id){return document.getElementById(id)};
+function lsGet(k,d){try{var v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return d}}
+function lsSet(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
+function rp(n){return 'Rp'+Math.round(Number(n)||0).toLocaleString('id-ID')}
+function pad(n){return n<10?'0'+n:''+n}
+function ymd(d){return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())}
+function today(){return ymd(new Date())}
+var HARI=['Ahad','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'];
+function tglTeks(s){var p=String(s).split('-');if(p.length!==3)return s;var d=new Date(+p[0],+p[1]-1,+p[2]);return HARI[d.getDay()]+', '+(+p[2])+'/'+(+p[1])+'/'+p[0]}
+function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,7)}
+
+var cfg=lsGet('hf_cfg',{api:'',pin:''});
+var menu=lsGet('hf_menu',DEFAULT_MENU);
+var orders=lsGet('hf_orders',[]);
+var qty={};var editId=null;var busy=false;
+var fStatus='aktif',rRange='hari';
+
+// link penyiapan perangkat kedua: #api=...&pin=...
+(function(){
+  if(location.hash.length>1){
+    var h=new URLSearchParams(location.hash.slice(1));
+    if(h.get('api')){cfg={api:h.get('api'),pin:h.get('pin')||''};lsSet('hf_cfg',cfg);
+      try{history.replaceState(null,'',location.pathname+location.search)}catch(e){location.hash=''}}
+  }
+})();
+
+function toast(msg,err){var t=$('toast');t.textContent=msg;t.className='on'+(err?' err':'');clearTimeout(toast.t);toast.t=setTimeout(function(){t.className=''},err?4200:2200)}
+
+// ---------- penyimpanan ----------
+function setState(res){
+  if(res.orders)orders=res.orders;
+  if(res.menu&&res.menu.length)menu=res.menu;
+  lsSet('hf_orders',orders);lsSet('hf_menu',menu);
+  renderAll();
+}
+function localApi(a,d){
+  if(a==='add')orders.push(d.order);
+  if(a==='update')orders=orders.map(function(o){return o.id===d.id?Object.assign({},o,d.patch):o});
+  if(a==='delete')orders=orders.filter(function(o){return o.id!==d.id});
+  if(a==='saveMenu')menu=d.menu;
+  return Promise.resolve({ok:true,orders:orders,menu:menu});
+}
+function call(a,d,quiet){
+  if(busy&&!quiet)return Promise.resolve(false);
+  busy=true;document.body.style.cursor='progress';
+  var p=cfg.api?fetch(cfg.api,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},
+      body:JSON.stringify(Object.assign({pin:cfg.pin,action:a},d||{}))}).then(function(r){
+        if(!r.ok)throw new Error('Server menjawab '+r.status);return r.json()})
+    :localApi(a,d||{});
+  return p.then(function(res){
+    if(!res.ok)throw new Error(res.error||'Gagal');
+    setState(res);return true;
+  }).catch(function(e){
+    if(!quiet)toast('Gagal: '+e.message+'. Data belum tersimpan.',true);
+    return false;
+  }).then(function(ok){busy=false;document.body.style.cursor='';return ok});
+}
+
+// ---------- form order ----------
+function renderItems(){
+  $('items').innerHTML=menu.map(function(m){
+    return '<div class="item"><div class="nm">'+esc(m.nama)+'<span>'+rp(m.harga)+'</span></div>'+
+      '<div class="qty"><button type="button" data-q="-1" data-id="'+esc(m.id)+'" aria-label="Kurangi">−</button><b>'+(qty[m.id]||0)+
+      '</b><button type="button" data-q="1" data-id="'+esc(m.id)+'" aria-label="Tambah">+</button></div></div>'}).join('');
+  $('oTotal').textContent=rp(calcTotal());
+}
+function calcItems(){return menu.filter(function(m){return qty[m.id]>0}).map(function(m){return{id:m.id,nama:m.nama,harga:Number(m.harga),qty:qty[m.id]}})}
+function calcTotal(){return calcItems().reduce(function(s,i){return s+i.harga*i.qty},0)}
+function resetForm(){
+  editId=null;qty={};$('fOrder').reset();$('oTgl').value=today();
+  $('formTitle').textContent='Order baru';$('btnSave').textContent='Simpan order';$('btnCancel').hidden=true;renderItems();
+}
+$('items').addEventListener('click',function(e){
+  var b=e.target.closest('button[data-q]');if(!b)return;
+  var id=b.dataset.id;qty[id]=Math.max(0,(qty[id]||0)+Number(b.dataset.q));renderItems();
+});
+$('btnCancel').addEventListener('click',resetForm);
+$('fOrder').addEventListener('submit',function(e){
+  e.preventDefault();
+  var items=calcItems();
+  if(!items.length){toast('Pilih minimal satu menu.',true);return}
+  var data={tanggal:$('oTgl').value,nama:$('oNama').value.trim(),wa:$('oWa').value.trim(),items:items,
+    total:calcTotal(),bayar:$('oBayar').value,catatan:$('oCat').value.trim()};
+  $('btnSave').disabled=true;
+  var p=editId?call('update',{id:editId,patch:data})
+    :call('add',{order:Object.assign({id:uid(),dibuat:new Date().toISOString(),status:'Baru'},data)});
+  p.then(function(ok){$('btnSave').disabled=false;if(ok){toast(editId?'Order diperbarui':'Order tersimpan');resetForm()}});
+});
+
+// ---------- daftar ----------
+function waLink(o){
+  var n=String(o.wa||'').replace(/\D/g,'');if(!n)return '';
+  if(n.charAt(0)==='0')n='62'+n.slice(1);
+  var t='Halo '+o.nama+', pesanan HandiFoodie untuk '+tglTeks(o.tanggal)+':\n'+
+    o.items.map(function(i){return '- '+i.qty+'x '+i.nama}).join('\n')+'\nTotal: '+rp(o.total)+(o.bayar==='Lunas'?' (lunas)':'');
+  return 'https://wa.me/'+n+'?text='+encodeURIComponent(t);
+}
+function renderList(){
+  var q=$('fCari').value.trim().toLowerCase(),tg=$('fTgl').value;
+  var rows=orders.filter(function(o){
+    if(fStatus==='aktif'&&o.status==='Selesai')return false;
+    if(fStatus==='belum'&&o.bayar==='Lunas')return false;
+    if(tg&&o.tanggal!==tg)return false;
+    if(q&&String(o.nama).toLowerCase().indexOf(q)<0)return false;
+    return true;
+  }).sort(function(a,b){return a.tanggal===b.tanggal?(a.dibuat<b.dibuat?1:-1):(a.tanggal<b.tanggal?(fStatus==='aktif'?-1:1):(fStatus==='aktif'?1:-1))});
+  if(!rows.length){$('list').innerHTML='<div class="empty">Tidak ada order di saringan ini.</div>';return}
+  $('list').innerHTML=rows.map(function(o){
+    var wa=waLink(o),next=o.status==='Baru'?'Siap':(o.status==='Siap'?'Selesai':'Baru');
+    return '<div class="card ord '+(o.bayar==='Lunas'?'lunas ':'')+(o.status==='Selesai'?'selesai':'')+'" data-id="'+esc(o.id)+'">'+
+      '<div class="top"><div><div class="who">'+esc(o.nama)+'</div><div class="meta">'+esc(tglTeks(o.tanggal))+(o.wa?' · '+esc(o.wa):'')+'</div></div>'+
+      '<div class="who">'+rp(o.total)+'</div></div>'+
+      '<ul>'+o.items.map(function(i){return '<li>'+i.qty+'× '+esc(i.nama)+'</li>'}).join('')+'</ul>'+
+      (o.catatan?'<div class="note">'+esc(o.catatan)+'</div>':'')+
+      '<div class="chips">'+
+      '<button type="button" class="chip '+(o.bayar==='Lunas'?'g':'a')+'" data-act="bayar">'+(o.bayar==='Lunas'?'✓ Lunas':'Belum bayar')+'</button>'+
+      '<button type="button" class="chip" data-act="status" data-next="'+next+'">Status: '+esc(o.status)+' → '+next+'</button>'+
+      (wa?'<a class="chip" target="_blank" rel="noopener" href="'+esc(wa)+'">WhatsApp</a>':'')+
+      '<button type="button" class="chip" data-act="edit">Ubah</button>'+
+      '<button type="button" class="chip r" data-act="hapus">Hapus</button>'+
+      '</div></div>'}).join('');
+}
+$('list').addEventListener('click',function(e){
+  var b=e.target.closest('button[data-act]');if(!b)return;
+  var id=b.closest('.ord').dataset.id,o=orders.filter(function(x){return x.id===id})[0];if(!o)return;
+  var a=b.dataset.act;
+  if(a==='bayar')call('update',{id:id,patch:{bayar:o.bayar==='Lunas'?'Belum':'Lunas'}});
+  if(a==='status')call('update',{id:id,patch:{status:b.dataset.next}});
+  if(a==='hapus'){
+    if(b.dataset.sure){call('delete',{id:id}).then(function(ok){if(ok)toast('Order dihapus')})}
+    else{b.dataset.sure='1';b.textContent='Yakin hapus?';setTimeout(function(){if(b.isConnected){delete b.dataset.sure;b.textContent='Hapus'}},3000)}
+  }
+  if(a==='edit'){
+    editId=id;qty={};o.items.forEach(function(i){qty[i.id]=i.qty});
+    $('oNama').value=o.nama;$('oWa').value=o.wa||'';$('oTgl').value=o.tanggal;$('oBayar').value=o.bayar;$('oCat').value=o.catatan||'';
+    $('formTitle').textContent='Ubah order';$('btnSave').textContent='Simpan perubahan';$('btnCancel').hidden=false;
+    renderItems();show('baru');
+    var miss=o.items.filter(function(i){return !menu.some(function(m){return m.id===i.id})});
+    if(miss.length)toast('Sebagian menu lama sudah tidak ada di daftar menu.',true);
+  }
+});
+$('fStatus').addEventListener('click',function(e){var b=e.target.closest('button');if(!b)return;fStatus=b.dataset.f;seg('fStatus',b);renderList()});
+$('fCari').addEventListener('input',renderList);$('fTgl').addEventListener('change',renderList);
+function seg(id,b){[].forEach.call($(id).children,function(x){x.classList.toggle('on',x===b)})}
+
+// ---------- rekap ----------
+function inRange(o){
+  var t=today();
+  if(rRange==='hari')return o.tanggal===t;
+  if(rRange==='7'){var d=new Date();d.setDate(d.getDate()-6);return o.tanggal>=ymd(d)&&o.tanggal<=t}
+  if(rRange==='bulan')return String(o.tanggal).slice(0,7)===t.slice(0,7);
+  return true;
+}
+function sumMenu(rows){
+  var m={};rows.forEach(function(o){o.items.forEach(function(i){
+    if(!m[i.nama])m[i.nama]={qty:0,rp:0};m[i.nama].qty+=Number(i.qty);m[i.nama].rp+=Number(i.qty)*Number(i.harga)})});
+  return Object.keys(m).map(function(k){return{nama:k,qty:m[k].qty,rp:m[k].rp}}).sort(function(a,b){return b.qty-a.qty});
+}
+function renderRekap(){
+  var rows=orders.filter(inRange),tot=0,lunas=0;
+  rows.forEach(function(o){tot+=Number(o.total);if(o.bayar==='Lunas')lunas+=Number(o.total)});
+  $('rStat').innerHTML='<div><b>'+rows.length+'</b><span>Jumlah order</span></div><div><b>'+rp(tot)+'</b><span>Omzet</span></div>'+
+    '<div><b>'+rp(lunas)+'</b><span>Sudah dibayar</span></div><div class="pk"><b>'+rp(tot-lunas)+'</b><span>Belum dibayar</span></div>';
+  var sm=sumMenu(rows);
+  $('rMenu').innerHTML=sm.length?'<table><tr><th>Menu</th><th class="n">Jml</th><th class="n">Nilai</th></tr>'+
+    sm.map(function(r){return '<tr><td>'+esc(r.nama)+'</td><td class="n">'+r.qty+'</td><td class="n">'+rp(r.rp)+'</td></tr>'}).join('')+'</table>'
+    :'<div class="empty">Belum ada order di periode ini.</div>';
+  var pt=$('pTgl').value||today();
+  var pr=orders.filter(function(o){return o.tanggal===pt&&o.status!=='Selesai'}),ps=sumMenu(pr);
+  $('pList').innerHTML=ps.length?'<table><tr><th>Yang harus dibuat</th><th class="n">Jml</th></tr>'+
+    ps.map(function(r){return '<tr><td>'+esc(r.nama)+'</td><td class="n"><b>'+r.qty+'</b></td></tr>'}).join('')+
+    '</table><p class="hint">Dari '+pr.length+' order yang belum selesai.</p>'
+    :'<div class="empty">Tidak ada order yang perlu dibuat untuk tanggal ini.</div>';
+}
+$('rRange').addEventListener('click',function(e){var b=e.target.closest('button');if(!b)return;rRange=b.dataset.r;seg('rRange',b);renderRekap()});
+$('pTgl').addEventListener('change',renderRekap);
+$('btnCsv').addEventListener('click',function(){
+  var c=function(v){return '"'+String(v==null?'':v).replace(/"/g,'""')+'"'};
+  var out=[['Tanggal','Nama','WA','Pesanan','Total','Bayar','Status','Catatan','Dibuat'].join(',')].concat(orders.map(function(o){
+    return [o.tanggal,o.nama,"'"+(o.wa||''),o.items.map(function(i){return i.qty+'x '+i.nama}).join('; '),o.total,o.bayar,o.status,o.catatan,o.dibuat].map(c).join(',')}));
+  var a=document.createElement('a');a.href=URL.createObjectURL(new Blob(['﻿'+out.join('\r\n')],{type:'text/csv'}));
+  a.download='order-handifoodie-'+today()+'.csv';document.body.appendChild(a);a.click();a.remove();
+});
+
+// ---------- pengaturan ----------
+var menuDraft=null;
+function renderMenuEdit(){
+  if(!menuDraft)menuDraft=menu.map(function(m){return Object.assign({},m)});
+  $('menuEdit').innerHTML=menuDraft.map(function(m,i){
+    return '<div class="mrow"><input data-i="'+i+'" data-k="nama" value="'+esc(m.nama)+'" placeholder="Nama menu" maxlength="50">'+
+      '<input data-i="'+i+'" data-k="harga" inputmode="numeric" value="'+esc(m.harga)+'" placeholder="Harga">'+
+      '<button type="button" data-del="'+i+'" aria-label="Hapus menu">×</button></div>'}).join('');
+}
+$('menuEdit').addEventListener('input',function(e){var t=e.target;if(t.dataset.k)menuDraft[+t.dataset.i][t.dataset.k]=t.value});
+$('menuEdit').addEventListener('click',function(e){var b=e.target.closest('button[data-del]');if(!b)return;menuDraft.splice(+b.dataset.del,1);renderMenuEdit()});
+$('btnAddMenu').addEventListener('click',function(){menuDraft.push({id:'m'+uid(),nama:'',harga:''});renderMenuEdit()});
+$('btnSaveMenu').addEventListener('click',function(){
+  var m=menuDraft.map(function(x){return{id:x.id,nama:String(x.nama).trim(),harga:Number(String(x.harga).replace(/\D/g,''))}}).filter(function(x){return x.nama});
+  if(!m.length||m.some(function(x){return !(x.harga>0)})){toast('Tiap menu perlu nama dan harga.',true);return}
+  call('saveMenu',{menu:m}).then(function(ok){if(ok){menuDraft=null;toast('Menu tersimpan')}});
+});
+function renderConn(){
+  $('cApi').value=cfg.api||'';$('cPin').value=cfg.pin||'';
+  $('connState').textContent=cfg.api?'Tersambung ke Google Sheets. Semua perangkat yang memakai URL dan PIN yang sama melihat data yang sama.'
+    :'Belum tersambung. Sekarang data hanya tersimpan di browser perangkat ini.';
+  $('banner').hidden=!!cfg.api;
+  $('banner').textContent='Mode lokal: data hanya ada di perangkat ini. Sambungkan Google Sheets di menu Atur supaya bisa dipakai di dua perangkat.';
+  $('sub').textContent=cfg.api?'Catatan Order · tersambung':'Catatan Order · mode lokal';
+}
+$('btnConn').addEventListener('click',function(){
+  var u=$('cApi').value.trim(),p=$('cPin').value.trim();
+  if(!/^https:\/\/script\.google\.com\/.+\/exec$/.test(u)){toast('URL harus dari script.google.com dan berakhiran /exec',true);return}
+  var old=cfg,local=orders.slice();cfg={api:u,pin:p};
+  call('list').then(function(ok){
+    if(!ok){cfg=old;return}
+    lsSet('hf_cfg',cfg);renderConn();toast('Tersambung');
+    var ids={};orders.forEach(function(o){ids[o.id]=1});
+    var up=local.filter(function(o){return !ids[o.id]});
+    if(up.length&&!old.api){(function next(i){if(i>=up.length){toast(up.length+' order lokal ikut diunggah');return}
+      call('add',{order:up[i]}).then(function(ok){if(ok)next(i+1)})})(0)}
+  });
+});
+$('btnShare').addEventListener('click',function(){
+  if(!cfg.api){toast('Sambungkan dulu ke Google Sheets.',true);return}
+  var link=location.origin+location.pathname+'#api='+encodeURIComponent(cfg.api)+'&pin='+encodeURIComponent(cfg.pin);
+  (navigator.clipboard?navigator.clipboard.writeText(link):Promise.reject()).then(function(){toast('Link disalin. Buka di perangkat kedua.')})
+    .catch(function(){window.prompt('Salin link ini:',link)});
+});
+$('btnDisc').addEventListener('click',function(){cfg={api:'',pin:''};lsSet('hf_cfg',cfg);renderConn();toast('Sambungan diputus di perangkat ini')});
+
+// ---------- navigasi ----------
+function show(v){
+  [].forEach.call(document.querySelectorAll('section'),function(s){s.classList.toggle('on',s.id==='v-'+v)});
+  [].forEach.call($('nav').children,function(b){b.classList.toggle('on',b.dataset.v===v)});
+  window.scrollTo(0,0);
+}
+$('nav').addEventListener('click',function(e){var b=e.target.closest('button');if(b)show(b.dataset.v)});
+$('btnRefresh').addEventListener('click',function(){call('list').then(function(ok){if(ok)toast('Data terbaru dimuat')})});
+function renderAll(){renderItems();renderList();renderRekap();if(!menuDraft||document.activeElement.closest&&!document.activeElement.closest('#menuEdit')){menuDraft=null;renderMenuEdit()}}
+
+$('oTgl').value=today();$('pTgl').value=today();
+renderConn();renderAll();
+if(cfg.api){call('list',null,true);
+  setInterval(function(){if(!document.hidden&&!busy&&!editId)call('list',null,true)},60000);
+  document.addEventListener('visibilitychange',function(){if(!document.hidden&&!busy)call('list',null,true)});}
+})();
+</script>
+</body>
+</html>
