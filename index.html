@@ -70,7 +70,7 @@ nav button.on{color:var(--gd);background:var(--gl)}
 #toast.on{opacity:1}#toast.err{background:var(--red)}
 .hint{font-size:13px;color:var(--mu)}
 ol.steps{padding-left:20px;font-size:14px}ol.steps li{margin-bottom:6px}
-.mrow{display:flex;gap:8px;margin-bottom:8px}.mrow input:first-child{flex:2}.mrow input:nth-child(2){flex:1}.mrow button{border:0;background:var(--pl);color:#a23b52;border-radius:12px;width:44px;font-size:18px;font-weight:800}
+.mrow{display:flex;gap:8px;margin-bottom:8px}.mrow input{min-width:0;padding-left:9px;padding-right:9px}.mrow input:first-child{flex:2}.mrow input:nth-child(2),.mrow input:nth-child(3){flex:1}.mhead{display:flex;gap:8px;font-size:12px;font-weight:700;color:var(--mu);margin-bottom:4px;padding-right:52px}.mhead span:first-child{flex:2}.mhead span{flex:1}.warn{background:#fff4d6;color:#6b4e00;border-radius:10px;padding:8px 10px;font-size:13px;margin-top:10px}.stat div.big{grid-column:1/-1;background:var(--g)}.stat div.big b,.stat div.big span{color:#fff}.mrow button{border:0;background:var(--pl);color:#a23b52;border-radius:12px;width:44px;font-size:18px;font-weight:800}
 </style>
 </head>
 <body>
@@ -184,10 +184,10 @@ ol.steps{padding-left:20px;font-size:14px}ol.steps li{margin-bottom:6px}
 (function(){
 'use strict';
 var DEFAULT_MENU=[
-  {id:'m1',nama:'Wanpaku Sandwich (potong)',harga:15000},
-  {id:'m2',nama:'Wanpaku Sandwich (pasang)',harga:28000},
-  {id:'m3',nama:'Mango Sago (cup 400ml)',harga:15000},
-  {id:'m4',nama:'Buah Potong (cup)',harga:9000}
+  {id:'m1',nama:'Wanpaku Sandwich (potong)',harga:15000,modal:0},
+  {id:'m2',nama:'Wanpaku Sandwich (pasang)',harga:28000,modal:0},
+  {id:'m3',nama:'Mango Sago (cup 400ml)',harga:15000,modal:0},
+  {id:'m4',nama:'Buah Potong (cup)',harga:9000,modal:0}
 ];
 var $=function(id){return document.getElementById(id)};
 function lsGet(k,d){try{var v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return d}}
@@ -256,7 +256,7 @@ function renderItems(){
       '</b><button type="button" data-q="1" data-id="'+esc(m.id)+'" aria-label="Tambah">+</button></div></div>'}).join('');
   $('oTotal').textContent=rp(calcTotal());
 }
-function calcItems(){return menu.filter(function(m){return qty[m.id]>0}).map(function(m){return{id:m.id,nama:m.nama,harga:Number(m.harga),qty:qty[m.id]}})}
+function calcItems(){return menu.filter(function(m){return qty[m.id]>0}).map(function(m){var it={id:m.id,nama:m.nama,harga:Number(m.harga),qty:qty[m.id]};if(Number(m.modal)>0)it.modal=Number(m.modal);return it})}
 function calcTotal(){return calcItems().reduce(function(s,i){return s+i.harga*i.qty},0)}
 function resetForm(){
   editId=null;qty={};$('fOrder').reset();$('oTgl').value=today();
@@ -344,21 +344,30 @@ function inRange(o){
   if(rRange==='bulan')return String(o.tanggal).slice(0,7)===t.slice(0,7);
   return true;
 }
+function modalOf(i){
+  if(Number(i.modal)>0)return Number(i.modal);
+  var m=menu.filter(function(x){return x.id===i.id})[0];return m?(Number(m.modal)||0):0;
+}
+function orderModal(o){return o.items.reduce(function(s,i){return s+Number(i.qty)*modalOf(i)},0)}
 function sumMenu(rows){
   var m={};rows.forEach(function(o){o.items.forEach(function(i){
-    if(!m[i.nama])m[i.nama]={qty:0,rp:0};m[i.nama].qty+=Number(i.qty);m[i.nama].rp+=Number(i.qty)*Number(i.harga)})});
-  return Object.keys(m).map(function(k){return{nama:k,qty:m[k].qty,rp:m[k].rp}}).sort(function(a,b){return b.qty-a.qty});
+    if(!m[i.nama])m[i.nama]={qty:0,rp:0,md:0};m[i.nama].qty+=Number(i.qty);m[i.nama].rp+=Number(i.qty)*Number(i.harga);m[i.nama].md+=Number(i.qty)*modalOf(i)})});
+  return Object.keys(m).map(function(k){return{nama:k,qty:m[k].qty,rp:m[k].rp,laba:m[k].rp-m[k].md}}).sort(function(a,b){return b.qty-a.qty});
 }
 function renderRekap(){
-  var rows=orders.filter(inRange),tot=0,lunas=0,qris=0,cash=0;
-  rows.forEach(function(o){var t=Number(o.total);tot+=t;if(o.bayar==='Lunas'){lunas+=t;if(o.metode==='QRIS')qris+=t;if(o.metode==='Cash')cash+=t}});
+  var rows=orders.filter(inRange),tot=0,lunas=0,qris=0,cash=0,md=0;
+  rows.forEach(function(o){var t=Number(o.total);tot+=t;md+=orderModal(o);if(o.bayar==='Lunas'){lunas+=t;if(o.metode==='QRIS')qris+=t;if(o.metode==='Cash')cash+=t}});
   $('rStat').innerHTML='<div><b>'+rows.length+'</b><span>Jumlah order</span></div><div><b>'+rp(tot)+'</b><span>Omzet</span></div>'+
     '<div><b>'+rp(lunas)+'</b><span>Sudah dibayar</span></div><div class="pk"><b>'+rp(tot-lunas)+'</b><span>Belum dibayar</span></div>'+
-    '<div><b>'+rp(qris)+'</b><span>Masuk lewat QRIS</span></div><div><b>'+rp(cash)+'</b><span>Masuk lewat Cash</span></div>';
+    '<div><b>'+rp(qris)+'</b><span>Masuk lewat QRIS</span></div><div><b>'+rp(cash)+'</b><span>Masuk lewat Cash</span></div>'+
+    '<div class="pk"><b>'+rp(md)+'</b><span>Modal (HPP)</span></div><div><b>'+(tot>0?Math.round((tot-md)/tot*100):0)+'%</b><span>Margin</span></div>'+
+    '<div class="big"><b>'+rp(tot-md)+'</b><span>Laba kotor (omzet − modal)</span></div>';
+  var kosong=menu.filter(function(m){return !(Number(m.modal)>0)}).map(function(m){return m.nama});
   var sm=sumMenu(rows);
-  $('rMenu').innerHTML=sm.length?'<table><tr><th>Menu</th><th class="n">Jml</th><th class="n">Nilai</th></tr>'+
-    sm.map(function(r){return '<tr><td>'+esc(r.nama)+'</td><td class="n">'+r.qty+'</td><td class="n">'+rp(r.rp)+'</td></tr>'}).join('')+'</table>'
+  $('rMenu').innerHTML=sm.length?'<table><tr><th>Menu</th><th class="n">Jml</th><th class="n">Omzet</th><th class="n">Laba</th></tr>'+
+    sm.map(function(r){return '<tr><td>'+esc(r.nama)+'</td><td class="n">'+r.qty+'</td><td class="n">'+rp(r.rp)+'</td><td class="n">'+rp(r.laba)+'</td></tr>'}).join('')+'</table>'
     :'<div class="empty">Belum ada order di periode ini.</div>';
+  if(kosong.length)$('rMenu').innerHTML+='<div class="warn">Modal belum diisi untuk: '+esc(kosong.join(', '))+'. Selama kosong, modalnya dihitung Rp0 sehingga laba terlihat lebih besar dari sebenarnya. Isi di menu Atur.</div>';
   var pt=$('pTgl').value||today();
   var pr=orders.filter(function(o){return o.tanggal===pt&&o.status!=='Selesai'}),ps=sumMenu(pr);
   $('pList').innerHTML=ps.length?'<table><tr><th>Yang harus dibuat</th><th class="n">Jml</th></tr>'+
@@ -370,8 +379,8 @@ $('rRange').addEventListener('click',function(e){var b=e.target.closest('button'
 $('pTgl').addEventListener('change',renderRekap);
 $('btnCsv').addEventListener('click',function(){
   var c=function(v){return '"'+String(v==null?'':v).replace(/"/g,'""')+'"'};
-  var out=[['Tanggal','Nama','WA','Pesanan','Total','Bayar','Metode','Status','Catatan','Dibuat'].join(',')].concat(orders.map(function(o){
-    return [o.tanggal,o.nama,"'"+(o.wa||''),o.items.map(function(i){return i.qty+'x '+i.nama}).join('; '),o.total,o.bayar,o.metode||'',o.status,o.catatan,o.dibuat].map(c).join(',')}));
+  var out=[['Tanggal','Nama','WA','Pesanan','Total','Modal','Laba','Bayar','Metode','Status','Catatan','Dibuat'].join(',')].concat(orders.map(function(o){
+    return [o.tanggal,o.nama,"'"+(o.wa||''),o.items.map(function(i){return i.qty+'x '+i.nama}).join('; '),o.total,orderModal(o),Number(o.total)-orderModal(o),o.bayar,o.metode||'',o.status,o.catatan,o.dibuat].map(c).join(',')}));
   var a=document.createElement('a');a.href=URL.createObjectURL(new Blob(['﻿'+out.join('\r\n')],{type:'text/csv'}));
   a.download='order-handifoodie-'+today()+'.csv';document.body.appendChild(a);a.click();a.remove();
 });
@@ -380,17 +389,19 @@ $('btnCsv').addEventListener('click',function(){
 var menuDraft=null;
 function renderMenuEdit(){
   if(!menuDraft)menuDraft=menu.map(function(m){return Object.assign({},m)});
-  $('menuEdit').innerHTML=menuDraft.map(function(m,i){
+  $('menuEdit').innerHTML='<div class="mhead"><span>Nama menu</span><span>Harga jual</span><span>Modal/porsi</span></div>'+menuDraft.map(function(m,i){
     return '<div class="mrow"><input data-i="'+i+'" data-k="nama" value="'+esc(m.nama)+'" placeholder="Nama menu" maxlength="50">'+
       '<input data-i="'+i+'" data-k="harga" inputmode="numeric" value="'+esc(m.harga)+'" placeholder="Harga">'+
+      '<input data-i="'+i+'" data-k="modal" inputmode="numeric" value="'+esc(Number(m.modal)>0?m.modal:'')+'" placeholder="Modal">'+
       '<button type="button" data-del="'+i+'" aria-label="Hapus menu">×</button></div>'}).join('');
 }
 $('menuEdit').addEventListener('input',function(e){var t=e.target;if(t.dataset.k)menuDraft[+t.dataset.i][t.dataset.k]=t.value});
 $('menuEdit').addEventListener('click',function(e){var b=e.target.closest('button[data-del]');if(!b)return;menuDraft.splice(+b.dataset.del,1);renderMenuEdit()});
-$('btnAddMenu').addEventListener('click',function(){menuDraft.push({id:'m'+uid(),nama:'',harga:''});renderMenuEdit()});
+$('btnAddMenu').addEventListener('click',function(){menuDraft.push({id:'m'+uid(),nama:'',harga:'',modal:''});renderMenuEdit()});
 $('btnSaveMenu').addEventListener('click',function(){
-  var m=menuDraft.map(function(x){return{id:x.id,nama:String(x.nama).trim(),harga:Number(String(x.harga).replace(/\D/g,''))}}).filter(function(x){return x.nama});
+  var m=menuDraft.map(function(x){return{id:x.id,nama:String(x.nama).trim(),harga:Number(String(x.harga).replace(/\D/g,'')),modal:Number(String(x.modal==null?'':x.modal).replace(/\D/g,''))}}).filter(function(x){return x.nama});
   if(!m.length||m.some(function(x){return !(x.harga>0)})){toast('Tiap menu perlu nama dan harga.',true);return}
+  if(m.some(function(x){return x.modal>x.harga})){toast('Ada modal yang lebih besar dari harga jual. Cek lagi.',true);return}
   call('saveMenu',{menu:m}).then(function(ok){if(ok){menuDraft=null;toast('Menu tersimpan')}});
 });
 function renderConn(){
