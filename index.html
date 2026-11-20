@@ -199,11 +199,17 @@ function ymd(d){return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate
 function today(){return ymd(new Date())}
 var HARI=['Ahad','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'];
 function tglTeks(s){var p=String(s).split('-');if(p.length!==3)return s;var d=new Date(+p[0],+p[1]-1,+p[2]);return HARI[d.getDay()]+', '+(+p[2])+'/'+(+p[1])+'/'+p[0]}
+function normTgl(v){
+  var t=String(v==null?'':v).trim();
+  if(/^\d{4}-\d{2}-\d{2}$/.test(t))return t;
+  var d=new Date(t);return isNaN(d.getTime())?t:ymd(d);
+}
+function normOrders(a){return (a||[]).map(function(o){o.tanggal=normTgl(o.tanggal);if(!Array.isArray(o.items))o.items=[];return o})}
 function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,7)}
 
 var cfg=lsGet('hf_cfg',{api:'',pin:''});
 var menu=lsGet('hf_menu',DEFAULT_MENU);
-var orders=lsGet('hf_orders',[]);
+var orders=normOrders(lsGet('hf_orders',[]));
 var qty={};var editId=null;var busy=false;
 var fStatus='aktif',rRange='hari';
 
@@ -220,7 +226,7 @@ function toast(msg,err){var t=$('toast');t.textContent=msg;t.className='on'+(err
 
 // ---------- penyimpanan ----------
 function setState(res){
-  if(res.orders)orders=res.orders;
+  if(res.orders)orders=normOrders(res.orders);
   if(res.menu&&res.menu.length)menu=res.menu;
   lsSet('hf_orders',orders);lsSet('hf_menu',menu);
   renderAll();
