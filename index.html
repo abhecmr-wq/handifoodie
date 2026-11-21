@@ -43,6 +43,7 @@ input:focus,select:focus,textarea:focus{outline:2px solid var(--p);border-color:
 .ord{border-left:6px solid var(--p)}
 .ord.lunas{border-left-color:var(--g)}
 .ord.selesai{opacity:.62}
+.ck{width:26px!important;height:26px;flex:none;padding:0;margin:2px 2px 0 0;accent-color:var(--g)}.pickall{display:flex;align-items:center;gap:8px;margin-top:10px;font-size:14px;font-weight:700;color:var(--gd)}.ord.picked{background:var(--gl)}#bulk{position:fixed;left:0;right:0;bottom:calc(66px + env(safe-area-inset-bottom));background:#fff;border-top:2px solid var(--g);box-shadow:0 -4px 14px rgba(0,0,0,.12);padding:10px 12px;z-index:6}#bulk .in{max-width:640px;margin:0 auto}#bulk .t{font-weight:800;color:var(--gd);margin-bottom:8px;display:flex;justify-content:space-between;gap:8px}#bulk .b{display:flex;gap:6px}#bulk .b button{flex:1;border:0;border-radius:12px;padding:12px 4px;font:inherit;font-size:14px;font-weight:800;background:var(--g);color:#fff}#bulk .b button.alt{background:var(--gl);color:var(--gd)}#bulk .t button{border:0;background:none;font:inherit;font-weight:700;color:var(--mu)}body.bulk #list{padding-bottom:120px}body.bulk #toast{bottom:220px}
 .ord .top{display:flex;justify-content:space-between;gap:8px;align-items:flex-start}
 .ord .who{font-weight:800;font-size:17px}
 .ord .meta{font-size:13px;color:var(--mu)}
@@ -114,6 +115,7 @@ ol.steps{padding-left:20px;font-size:14px}ol.steps li{margin-bottom:6px}
         <input id="fCari" placeholder="Cari nama…">
         <input id="fTgl" type="date" aria-label="Saring tanggal">
       </div>
+      <label class="pickall"><input type="checkbox" class="ck" id="pickAll"> Pilih semua yang tampil</label>
     </div>
     <div id="list"></div>
   </section>
@@ -178,6 +180,10 @@ ol.steps{padding-left:20px;font-size:14px}ol.steps li{margin-bottom:6px}
   <button type="button" data-v="rekap"><i>∑</i>Rekap</button>
   <button type="button" data-v="atur"><i>⚙</i>Atur</button>
 </nav>
+<div id="bulk" hidden><div class="in">
+  <div class="t"><span id="bulkInfo"></span><button type="button" id="bulkClear">Batal pilih</button></div>
+  <div class="b"><button type="button" data-bulk="QRIS">Lunas QRIS</button><button type="button" data-bulk="Cash">Lunas Cash</button><button type="button" class="alt" data-bulk="selesai">Selesai saja</button></div>
+</div></div>
 <div id="toast" role="status"></div>
 
 <script>
@@ -211,7 +217,7 @@ var cfg=lsGet('hf_cfg',{api:'',pin:''});
 var menu=lsGet('hf_menu',DEFAULT_MENU);
 var orders=normOrders(lsGet('hf_orders',[]));
 var qty={};var editId=null;var busy=false;
-var fStatus='aktif',rRange='hari';
+var fStatus='aktif',rRange='hari';var sel={},lastErr='';
 
 // link penyiapan perangkat kedua: #api=...&pin=...
 (function(){
@@ -234,6 +240,7 @@ function setState(res){
 function localApi(a,d){
   if(a==='add')orders.push(d.order);
   if(a==='update')orders=orders.map(function(o){return o.id===d.id?Object.assign({},o,d.patch):o});
+  if(a==='updateMany'){var pm={};d.updates.forEach(function(u){pm[u.id]=u.patch});orders=orders.map(function(o){return pm[o.id]?Object.assign({},o,pm[o.id]):o})}
   if(a==='delete')orders=orders.filter(function(o){return o.id!==d.id});
   if(a==='saveMenu')menu=d.menu;
   return Promise.resolve({ok:true,orders:orders,menu:menu});
@@ -249,6 +256,7 @@ function call(a,d,quiet){
     if(!res.ok)throw new Error(res.error||'Gagal');
     setState(res);return true;
   }).catch(function(e){
+    lastErr=e.message;
     if(!quiet)toast('Gagal: '+e.message+'. Data belum tersimpan.',true);
     return false;
   }).then(function(ok){busy=false;document.body.style.cursor='';return ok});
@@ -293,6 +301,31 @@ function waLink(o){
     o.items.map(function(i){return '- '+i.qty+'x '+i.nama}).join('\n')+'\nTotal: '+rp(o.total)+(o.bayar==='Lunas'?' (lunas'+(o.metode?' via '+o.metode:'')+')':'');
   return 'https://wa.me/'+n+'?text='+encodeURIComponent(t);
 }
+var visibleIds=[];
+function renderBulk(){
+  var ids=Object.keys(sel),tot=0,belum=0;
+  orders.forEach(function(o){if(sel[o.id]){tot+=Number(o.total);if(o.bayar!=='Lunas')belum++}});
+  $('bulk').hidden=!ids.length;document.body.classList.toggle('bulk',!!ids.length);
+  $('bulkInfo').textContent=ids.length+' order dipilih · '+rp(tot)+(belum<ids.length?' ('+belum+' belum bayar)':'');
+  $('pickAll').checked=visibleIds.length>0&&ids.length===visibleIds.length;
+}
+function bulkDo(kind){
+  var ups=orders.filter(function(o){return sel[o.id]}).map(function(o){
+    var p={status:'Selesai'};
+    if(kind!=='selesai'&&o.bayar!=='Lunas'){p.bayar='Lunas';p.metode=kind}
+    return{id:o.id,patch:p}});
+  if(!ups.length||busy)return;
+  var n=ups.length,msg=n+' order '+(kind==='selesai'?'diselesaikan':'dilunasi & diselesaikan');
+  toast('Menyimpan '+n+' order…');
+  call('updateMany',{updates:ups},true).then(function(ok){
+    if(ok){sel={};renderList();toast(msg);return}
+    if(!/tidak dikenal/i.test(lastErr)){toast('Gagal: '+lastErr+'. Data belum tersimpan.',true);return}
+    (function next(i){            // Code.gs versi lama: simpan satu per satu
+      if(i>=ups.length){sel={};renderList();toast(msg);return}
+      call('update',ups[i],true).then(function(ok){if(ok)next(i+1);else toast('Gagal di order ke-'+(i+1)+': '+lastErr,true)});
+    })(0);
+  });
+}
 function renderList(){
   var q=$('fCari').value.trim().toLowerCase(),tg=$('fTgl').value;
   var rows=orders.filter(function(o){
@@ -302,18 +335,20 @@ function renderList(){
     if(q&&String(o.nama).toLowerCase().indexOf(q)<0)return false;
     return true;
   }).sort(function(a,b){return a.tanggal===b.tanggal?(a.dibuat<b.dibuat?1:-1):(a.tanggal<b.tanggal?(fStatus==='aktif'?-1:1):(fStatus==='aktif'?1:-1))});
+  var vis={};rows.forEach(function(o){vis[o.id]=1});Object.keys(sel).forEach(function(k){if(!vis[k])delete sel[k]});
+  visibleIds=rows.map(function(o){return o.id});renderBulk();
   if(!rows.length){$('list').innerHTML='<div class="empty">Tidak ada order di saringan ini.</div>';return}
   $('list').innerHTML=rows.map(function(o){
-    var wa=waLink(o),next=o.status==='Baru'?'Siap':(o.status==='Siap'?'Selesai':'Baru');
-    return '<div class="card ord '+(o.bayar==='Lunas'?'lunas ':'')+(o.status==='Selesai'?'selesai':'')+'" data-id="'+esc(o.id)+'">'+
-      '<div class="top"><div><div class="who">'+esc(o.nama)+'</div><div class="meta">'+esc(tglTeks(o.tanggal))+(o.wa?' · '+esc(o.wa):'')+'</div></div>'+
+    var wa=waLink(o),done=o.status==='Selesai';
+    return '<div class="card ord '+(o.bayar==='Lunas'?'lunas ':'')+(done?'selesai ':'')+(sel[o.id]?'picked':'')+'" data-id="'+esc(o.id)+'">'+
+      '<div class="top"><input type="checkbox" class="ck" data-pick="1" aria-label="Pilih order ini"'+(sel[o.id]?' checked':'')+'><div style="flex:1;min-width:0"><div class="who">'+esc(o.nama)+'</div><div class="meta">'+esc(tglTeks(o.tanggal))+(o.wa?' · '+esc(o.wa):'')+'</div></div>'+
       '<div class="who">'+rp(o.total)+'</div></div>'+
       '<ul>'+o.items.map(function(i){return '<li>'+i.qty+'× '+esc(i.nama)+'</li>'}).join('')+'</ul>'+
       (o.catatan?'<div class="note">'+esc(o.catatan)+'</div>':'')+
       '<div class="chips">'+
       (o.bayar==='Lunas'?'<button type="button" class="chip g" data-act="bayar" data-m="">✓ Lunas'+(o.metode?' · '+esc(o.metode):'')+'</button>'
         :'<button type="button" class="chip a" data-act="bayar" data-m="QRIS">Bayar QRIS</button><button type="button" class="chip a" data-act="bayar" data-m="Cash">Bayar Cash</button>')+
-      '<button type="button" class="chip" data-act="status" data-next="'+next+'">Status: '+esc(o.status)+' → '+next+'</button>'+
+      '<button type="button" class="chip" data-act="status" data-next="'+(done?'Baru':'Selesai')+'">'+(done?'✓ Selesai · buka lagi':'Selesaikan')+'</button>'+
       (wa?'<a class="chip" target="_blank" rel="noopener" href="'+esc(wa)+'">WhatsApp</a>':'')+
       '<button type="button" class="chip" data-act="edit">Ubah</button>'+
       '<button type="button" class="chip r" data-act="hapus">Hapus</button>'+
@@ -323,7 +358,7 @@ $('list').addEventListener('click',function(e){
   var b=e.target.closest('button[data-act]');if(!b)return;
   var id=b.closest('.ord').dataset.id,o=orders.filter(function(x){return x.id===id})[0];if(!o)return;
   var a=b.dataset.act;
-  if(a==='bayar')call('update',{id:id,patch:o.bayar==='Lunas'?{bayar:'Belum',metode:''}:{bayar:'Lunas',metode:b.dataset.m}});
+  if(a==='bayar')call('update',{id:id,patch:o.bayar==='Lunas'?{bayar:'Belum',metode:'',status:'Baru'}:{bayar:'Lunas',metode:b.dataset.m,status:'Selesai'}});
   if(a==='status')call('update',{id:id,patch:{status:b.dataset.next}});
   if(a==='hapus'){
     if(b.dataset.sure){call('delete',{id:id}).then(function(ok){if(ok)toast('Order dihapus')})}
@@ -338,6 +373,15 @@ $('list').addEventListener('click',function(e){
     if(miss.length)toast('Sebagian menu lama sudah tidak ada di daftar menu.',true);
   }
 });
+$('list').addEventListener('change',function(e){
+  var c=e.target;if(!c.dataset||!c.dataset.pick)return;
+  var card=c.closest('.ord'),id=card.dataset.id;
+  if(c.checked)sel[id]=1;else delete sel[id];
+  card.classList.toggle('picked',c.checked);renderBulk();
+});
+$('pickAll').addEventListener('change',function(e){sel={};if(e.target.checked)visibleIds.forEach(function(id){sel[id]=1});renderList()});
+$('bulkClear').addEventListener('click',function(){sel={};renderList()});
+$('bulk').addEventListener('click',function(e){var b=e.target.closest('button[data-bulk]');if(b)bulkDo(b.dataset.bulk)});
 $('fStatus').addEventListener('click',function(e){var b=e.target.closest('button');if(!b)return;fStatus=b.dataset.f;seg('fStatus',b);renderList()});
 $('fCari').addEventListener('input',renderList);$('fTgl').addEventListener('change',renderList);
 function seg(id,b){[].forEach.call($(id).children,function(x){x.classList.toggle('on',x===b)})}
